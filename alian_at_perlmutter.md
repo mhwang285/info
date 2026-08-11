@@ -109,8 +109,10 @@ Author: Tucker
 We use a Shifter container ([Dockerfile](https://github.com/tch285/anchor/blob/main/alian-base/Dockerfile), [installed packages](https://github.com/tch285/anchor/blob/main/alian-base/packages)) that has all of the package dependencies to install `heppyy`, its dependencies, and `alian`. Note that this image derives from Ubuntu 22.04, not the NERSC SLES. Because these instructions will install the individual `yasp` packages, this installation may take longer, but allows for customization. If you don't anticipate needing any specific customization of the `yasp` packages, use the instructions above on [installing with conda](#using-conda).
 
 ```bash
+# tmux is not strictly needed, but can be nice since the build can take a while
+tmux
+# set this workdir to where you want to install
 workdir=/global/cfs/cdirs/alice/$USER/myalian
-# or set a custom workdir
 mkdir -p $workdir
 cd $workdir
 shifter --entrypoint --image=tch285/alian-base
