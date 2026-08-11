@@ -2,16 +2,17 @@
 
 ## Table of contents
 
-- [Table of contents](#table-of-contents)
-- [Contact](#contact)
-- [Shifter](#shifter)
-- [Using pre-built O2/O2Physics](#using-pre-built-o2o2physics)
-- [Building O2Physics from source](#building-o2physics-from-source)
-- [Tips and tricks](#tips-and-tricks)
-  - [Using aliases in `alienv` environments](#using-aliases-in-alienv-environments)
-  - [Generating and using AliEn tokens](#generating-and-using-alien-tokens)
-  - [Keeping your O2 software up to date](#keeping-your-o2-software-up-to-date)
-  - [`ssh` into a specific login node](#ssh-into-a-specific-login-node)
+- [O2Physics with Shifter at Perlmutter](#o2physics-with-shifter-at-perlmutter)
+  - [Table of contents](#table-of-contents)
+  - [Contact](#contact)
+  - [Shifter](#shifter)
+  - [Using pre-built O2/O2Physics](#using-pre-built-o2o2physics)
+  - [Building O2Physics from source](#building-o2physics-from-source)
+  - [Tips and tricks](#tips-and-tricks)
+    - [Using aliases in `alienv` environments](#using-aliases-in-alienv-environments)
+    - [Generating and using AliEn tokens](#generating-and-using-alien-tokens)
+    - [Keeping your O2 software up to date](#keeping-your-o2-software-up-to-date)
+    - [`ssh` into a specific login node](#ssh-into-a-specific-login-node)
 
 ## Contact
 
@@ -42,13 +43,13 @@ If you don't need to develop new code for O2Physics, but you just want to use th
 1. If you aren’t aiming to develop for O2Physics and only intending to run the software, explore whether you can use the precompiled binaries on CVMFS, and check the [previous section](#using-pre-built-o2o2physics) if you do.
 2. First [obtain a grid certificate](https://alice-doc.github.io/alice-analysis-tutorial/start/cert.html) if you haven't done so already.
 3. `ssh` into Perlmutter with your credentials and make sure you have [converted your certificate](https://alice-doc.github.io/alice-analysis-tutorial/start/cert.html#convert-your-certificate-for-using-the-grid-tools).
-4. Make and/or enter your work directory. For the rest of this installation, we’ll assume it’s in `~/alice`. Do not try to install in Global Common (`/global/common/software/alice`) - O2 is too large. I recommend installing in a personal directory on CFS (e.g. `/global/cfs/cdirs/alice/$USER`)
+4. Make and enter your work directory. For the rest of this installation, we’ll assume it’s in `~/alice`. Do not try to install in Global Common (`/global/common/software/alice`) - O2 is too large. I recommend installing in a personal directory on CFS (e.g. `/global/cfs/cdirs/alice/$USER/myO2Physics`)
 5. To run this installation, we’ll be using `tmux` or `screen`. Since Perlmutter has a load balancer that’ll put you (probably) on a random node whenever you log in, it’s important to know where your tmux/screen sessions are running (they don’t persist across login nodes). Find your login node with `echo $HOST` or `hostname`. The output will be the name of the login node you’re in, something like `loginXX` with XX being a two-digit number between 01 and 40.
 6. Start a multiplexer window, either with `tmux` or `screen`. I personally recommend `tmux`, since it preserves the full history of the shell (there’s probably some option in `screen` that allows this too but I forget).
 7. Enter the Shifter container via
 
     ```bash
-    shifter --image=tch285/o2alma:latest /bin/bash
+    shifter -m none --image=tch285/o2alma:latest /bin/bash
     ```
 
     You can add the additional option to load an rc file in your bash session by tacking on `--rcfile <path/to/file>` at the end of the above command.
@@ -65,18 +66,23 @@ If you don't need to develop new code for O2Physics, but you just want to use th
 10. Clone the O2Physics repository. Here are some common options to do this:
     - `aliBuild init O2Physics@master`, which will clone the repo from the main source. If you’re developing for O2Physics, there is essentially no reason for you to do this, since you need a fork to submit PRs. Instead, you should clone your own fork instead:
     - `git clone <your_fork>`: Make a fork of the main O2Physics repository and clone that instead. You can specify a specific branch with `b <your_branch>` and only clone that branch with `--single-branch`. In this case, make sure to swap into the branch you want before you build!
-    - In either case you may run into some SSL certification error; in this case run `git config --global http.sslVerify false` and try again. To be clear, **this is in general a terrible, terrible idea**, but unfortunately there is no way to get around this at NERSC without large changes to the NERSC Shifter configuration[^3]. **Once the build is complete, you should set `sslVerify` to `true` again.**
 11. Your work directory should now contain directories `O2`, `O2Physics`, `alidist`, and `sw`. Build with `time aliBuild build O2Physics -d -j8`. Here are the explanations for the arguments:
     - `time` is totally optional: I just like to know how long the compilation takes. In my experience it takes around 4-6 hours with these arguments.
     - The `-d` flag results in debug/verbose output, so you can ignore this if you want.
-    - `-j8` instructs the node to use fewer cores. aliBuild by default uses the maximum number of available cores, which on Perlmutter login nodes is 256. However, it’s actually better for us to use fewer cores, because the build step can run into problems if there’s not enough available memory per core (which it almost certainly will) - so we reduce the number of cores and thereby increase the available memory per core. If you give it too many cores, you will see an error like
+    - `-j6` instructs the node to use 6 cores. aliBuild by default uses the maximum number of available cores, which on Perlmutter login nodes is 256. However, it’s actually better for us to use fewer cores, because the build step can run into problems if there’s not enough available memory per core (which it almost certainly will) - so we reduce the number of cores and thereby increase the available memory per core. If you give it too many cores, you will see an error like
 
         ```bash
         c++: fatal error: Killed signal terminated program cc1plus
         compilation terminated.
         ```
 
-        From my testing it seems that around 8 cores is the maximum.
+        From my testing it seems that around 6 cores is the maximum. Even with this, you can sometimes run into out-of-memory issues. aliBuild will trigger a rebuild wherever it left off, so you can just run the same command again to continue. If you don't want to retrigger the build again manually, you can run something like
+
+        ```bash
+        until aliBuild build O2Physics -d -j5; do sleep 1; done
+        ```
+
+        This will continually rerun the build until it succeeds. Be careful of doing this when you've changed the code and trying to recompile! If you've made a compilation error, this will run endlessly (since it's a persistent issue with your code rather than a memory problem). If it seems like it's going too long, exit out with Ctrl-C and see what the singular build command gives.
 12. You can now detach at any point (with `<Ctrl-a> d` on screen or `<Ctrl-b> d` on tmux), and close the ssh connection as you need. If you want to check the progress, log back into Perlmutter, ssh into the login node you found in step 3[^2] (with e.g. `ssh login25`) and reattach to your multiplexer window with `tmux a` or `screen -r`.
 13. When the compilation finishes, you’ll get a message like this:
 
@@ -131,10 +137,10 @@ Keep in mind that your tokens will only exist on the login node you generated th
     ```bash
     export JALIEN_TOKEN_CERT=$HOME/tokens/tokencert_$UID.pem
     export JALIEN_TOKEN_KEY=$HOME/tokens/tokenkey_$UID.pem
-    export ALIENPY_DEBUG_FILE=/tmp/$UID_alien_py.log
+    export ALIENPY_DEBUG_FILE=/tmp/${UID}_alien_py.log
     ```
 
-    This is currently the only option for batch jobs. It's a less ideal solution for login nodes, since you'd have to set these variables every time you enter the node. For that, see the next solution.
+    This is currently the only option for batch jobs. It's a valid but less ideal solution for login nodes, since you'd have to set these variables every time you enter the node. You could do this by putting this in `~/.bashrc`, or use the next solution.
 2. **... on other login nodes**: You can simply generate them on one node and use `scp` to copy them to all of the other login nodes. An example script is below. Keep in mind that since any login nodes that are inaccessible at the time of running the script will not have these keys copied, so you may have to run it again later.
     <details>
 
@@ -271,4 +277,3 @@ With this setup, you should now be able to just run `ssh login<XX>` which will t
 
 [^1]: One major advantage is that, in contrast with Podman, volumes do not have to be explicitly mounted.
 [^2]: It is possible to ssh directly into a specific login node, but the setup is a little involved. It's definitely a little overkill for this kind of thing so just do it manually and you can check the [relevant section](#generating-and-using-alien-tokens) later.
-[^3]: It’s not enough to clone outside the Shifter container either, since aliBuild will clone all of the repository dependencies through https.
