@@ -52,12 +52,13 @@ A list of central MC productions from ALICE that have been converted to the Berk
 2. A full list of PWG-JE productions can be found on [this spreadsheet](https://docs.google.com/spreadsheets/d/1zsD_StvPqN2-7dOlfN9W03TB4Opj9EwdrBQHOQi3ViU/edit?gid=1990835816#gid=1990835816).
 3. The MB gap number refers to the *total* number of signal and MB events within the gap loop. For example, a MB gap 2 simulation goes signal-MB-signal-MB-...
 
-| Name  | Anchor   | Pass | System | Gap | JIRA                                               | Clusters | Path | Hiccup | Notes     |
-|-------|----------|------|--------|-----|----------------------------------------------------|----------|------|--------|-----------|
-| 25a2b | 22o      | 7    | pp     | 5   | [O2-5654](https://its.cern.ch/jira/browse/O2-5654) |          |      |        |           |
-| 26a6  | 24_ppref | 1    | pp     |     | [O2-6632](https://its.cern.ch/jira/browse/O2-6632) |          |      |        |           |
-| 26a7  | 24 PbPb  | 3    | PbPb   | 2   | [O2-6633](https://its.cern.ch/jira/browse/O2-6633) |          |      |        | MB gap 2  |
-|       | 24 pp    | 1    | pp     |     |                                                    |          |      |        | Gamma-jet |
+| Name  | Anchor   | Pass | System | Gap | JIRA                                               | Clusters | Path | Hiccup | Notes                                                                     |
+|-------|----------|------|--------|-----|----------------------------------------------------|----------|------|--------|---------------------------------------------------------------------------|
+| 25a2b | 22o      | 7    | pp     | 5   | [O2-5654](https://its.cern.ch/jira/browse/O2-5654) |          |      |        |                                                                           |
+| 26c5  | 24_ppref | 1    | pp     | 3   | [O2-6744](https://its.cern.ch/jira/browse/O2-6744) |          |      |        |                                                                           |
+| 26a7  | 24 PbPb  | 3    | PbPb   | 2   | [O2-6633](https://its.cern.ch/jira/browse/O2-6633) |          |      |        |                                                                           |
+| 26b6  | OO       | 1    | OO     | 2   | [O2-6660](https://its.cern.ch/jira/browse/O2-6660) |          |      |        | Is pass1 but OK to use with pass2 data (diff w.r.t pass1 is only ZDC/TOF) |
+| 26b10 | 24 pp    | 1    | pp     | 2   | [O2-6683](https://its.cern.ch/jira/browse/O2-6683) | &check;  |      |        | GJ not JJ                                                                 |
 
 ## MC (fast simulation)
 
