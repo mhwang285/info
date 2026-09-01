@@ -9,6 +9,7 @@
   - [Using pre-built O2/O2Physics](#using-pre-built-o2o2physics)
   - [Building O2Physics from source](#building-o2physics-from-source)
   - [Tips and tricks](#tips-and-tricks)
+    - [Setting up `pre-commit`](#setting-up-pre-commit)
     - [Using aliases in `alienv` environments](#using-aliases-in-alienv-environments)
     - [Generating and using AliEn tokens](#generating-and-using-alien-tokens)
     - [Keeping your O2 software up to date](#keeping-your-o2-software-up-to-date)
@@ -66,23 +67,23 @@ If you don't need to develop new code for O2Physics, but you just want to use th
 10. Clone the O2Physics repository. Here are some common options to do this:
     - `aliBuild init O2Physics@master`, which will clone the repo from the main source. If you’re developing for O2Physics, there is essentially no reason for you to do this, since you need a fork to submit PRs. Instead, you should clone your own fork instead:
     - `git clone <your_fork>`: Make a fork of the main O2Physics repository and clone that instead. You can specify a specific branch with `b <your_branch>` and only clone that branch with `--single-branch`. In this case, make sure to swap into the branch you want before you build!
-11. Your work directory should now contain directories `O2`, `O2Physics`, `alidist`, and `sw`. Build with `time aliBuild build O2Physics -d -j8`. Here are the explanations for the arguments:
+11. Your work directory should now contain directories `O2`, `O2Physics`, `alidist`, and `sw`. Build with `time aliBuild build O2Physics -d -j5`. Here are the explanations for the arguments:
     - `time` is totally optional: I just like to know how long the compilation takes. In my experience it takes around 4-6 hours with these arguments.
     - The `-d` flag results in debug/verbose output, so you can ignore this if you want.
-    - `-j6` instructs the node to use 6 cores. aliBuild by default uses the maximum number of available cores, which on Perlmutter login nodes is 256. However, it’s actually better for us to use fewer cores, because the build step can run into problems if there’s not enough available memory per core (which it almost certainly will) - so we reduce the number of cores and thereby increase the available memory per core. If you give it too many cores, you will see an error like
+    - `-j5` instructs the node to use 5 cores. aliBuild by default uses the maximum number of available cores, which on Perlmutter login nodes is 256. However, it’s actually better for us to use fewer cores, because the build step can run into problems if there’s not enough available memory per core (which it almost certainly will) - so we reduce the number of cores and thereby increase the available memory per core. If you give it too many cores, you will see an error like
 
         ```bash
         c++: fatal error: Killed signal terminated program cc1plus
         compilation terminated.
         ```
 
-        From my testing it seems that around 6 cores is the maximum. Even with this, you can sometimes run into out-of-memory issues. aliBuild will trigger a rebuild wherever it left off, so you can just run the same command again to continue. If you don't want to retrigger the build again manually, you can run something like
+        From my testing it seems that around 5 cores is the maximum. Even with this, you can sometimes run into out-of-memory issues. aliBuild will trigger a rebuild wherever it left off, so you can just run the same command again to continue. If you don't want to retrigger the build again manually, you can run something like
 
         ```bash
         until aliBuild build O2Physics -d -j5; do sleep 1; done
         ```
 
-        This will continually rerun the build until it succeeds. Be careful of doing this when you've changed the code and trying to recompile! If you've made a compilation error, this will run endlessly (since it's a persistent issue with your code rather than a memory problem). If it seems like it's going too long, exit out with Ctrl-C and see what the singular build command gives.
+        This will continually rerun the build until it succeeds. Be careful of doing this when you've changed the code and trying to recompile! If you've made a compilation error, this will run endlessly (since it's a persistent issue with your code rather than a memory problem and it will never properly compile). If it seems like it's going too long, exit out with Ctrl-C and see what the singular build command gives.
 12. You can now detach at any point (with `<Ctrl-a> d` on screen or `<Ctrl-b> d` on tmux), and close the ssh connection as you need. If you want to check the progress, log back into Perlmutter, ssh into the login node you found in step 3[^2] (with e.g. `ssh login25`) and reattach to your multiplexer window with `tmux a` or `screen -r`.
 13. When the compilation finishes, you’ll get a message like this:
 
@@ -112,6 +113,10 @@ If you don't need to develop new code for O2Physics, but you just want to use th
     In terms of wall-clock compilation time, you can look at the `real` section.
 
 ## Tips and tricks
+
+### Setting up `pre-commit`
+
+O2Physics and O2 are configured so that you can use the `pre-commit` tool to help format your code so it passes the CI checks during pull requests. `pre-commit` is already installed in the `o2alma:latest` image, so no need to run `pip install pre-commit`: you can simply follow the instructions [here](https://aliceo2group.github.io/analysis-framework/docs/tools/#pre-commit-hooks) on how to configure pre-commit hooks for O2Physics.
 
 ### Using aliases in `alienv` environments
 
