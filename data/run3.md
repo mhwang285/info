@@ -57,7 +57,7 @@ A list of central MC productions from ALICE that have been converted to the Berk
 | 25a2b | 22o      | 7    | pp     | 5   | [O2-5654](https://its.cern.ch/jira/browse/O2-5654) |          |      |        |                                                                           |
 | 26c5  | 24_ppref | 1    | pp     | 3   | [O2-6744](https://its.cern.ch/jira/browse/O2-6744) |          |      |        |                                                                           |
 | 26a7  | 24 PbPb  | 3    | PbPb   | 2   | [O2-6633](https://its.cern.ch/jira/browse/O2-6633) |          |      |        |                                                                           |
-| 26b6  | OO       | 1    | OO     | 2   | [O2-6660](https://its.cern.ch/jira/browse/O2-6660) |          |      |        | Is pass1 but OK to use with pass2 data (diff w.r.t pass1 is only ZDC/TOF) |
+| 26b6  | OO       | 1    | OO     | 2   | [O2-6660](https://its.cern.ch/jira/browse/O2-6660) |          |      | &check;| Is pass1 but OK to use with pass2 data (diff w.r.t pass1 is only ZDC/TOF) |
 | 26b10 | 24 pp    | 1    | pp     | 2   | [O2-6683](https://its.cern.ch/jira/browse/O2-6683) | &check;  |      |        | GJ not JJ                                                                 |
 
 ## MC (fast simulation)
