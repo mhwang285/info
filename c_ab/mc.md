@@ -13,6 +13,10 @@ pre-selections:
 
 notes: A separate outlier rejection of $$p_{T,jet}/\hat{p}_{T} > cutoff$$ has to be applied on analysis level (cutoff=4 for pp ref. is recommended)
 
+## LHC26b6
+
+pp JJ MC anchored to LHC25ae OO pass2
+
 ## JEWEL
 
 JEWEL (2.4.0) simulations at different inital temperatures are also stored on hiccup in:
