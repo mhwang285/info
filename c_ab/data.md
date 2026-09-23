@@ -21,8 +21,8 @@ The storage conditions for derived data sets are applied with OR conditions.
 
 ### O-O (JE_LHC25ae_pass2_CEWSJ10_FJ12_CL8_TTSig15_TTRef5)
 
-- location on hiccup: `/rstorage/alice/run3/data/LHC25ae/BerkeleyTrees/`
-- charged jets with R <= 0.4 and pT,subtracted > 10 GeV
+- location on hiccup: `/rstorage/alice/run3/data/LHC25ae_fix/BerkeleyTrees/`
+- charged jets with R <= 0.4 and pT,CS-subtracted > 10 GeV
 - full jets with R <= 0.4 and pT > 12 GeV
 - clusters with energy > 8 GeV
 - trigger tracks with pT > 15 GeV (95%), 5 GeV (5%)
@@ -31,4 +31,4 @@ The storage conditions for derived data sets are applied with OR conditions.
 
 ### O-O
 
-- location on hiccup: `/rstorage/alice/run3/data/LHC25ae_mb/BerkeleyTrees/`
+- location on hiccup: `/rstorage/alice/run3/data/LHC25ae_mb_100/BerkeleyTrees/`
