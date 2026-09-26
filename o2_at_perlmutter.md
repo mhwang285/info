@@ -10,15 +10,18 @@
   - [Building O2Physics from source](#building-o2physics-from-source)
   - [Tips and tricks](#tips-and-tricks)
     - [Setting up `pre-commit`](#setting-up-pre-commit)
+    - [Using `ninja` for partial builds](#using-ninja-for-partial-builds)
     - [Using aliases in `alienv` environments](#using-aliases-in-alienv-environments)
+    - [Stabilizing MatLUT, geometry, and CCDB lookups](#stabilizing-matlut-geometry-and-ccdb-lookups)
+    - [Checking a corrupted file](#checking-a-corrupted-file)
     - [Generating and using AliEn tokens](#generating-and-using-alien-tokens)
     - [Keeping your O2 software up to date](#keeping-your-o2-software-up-to-date)
     - [`ssh` into a specific login node](#ssh-into-a-specific-login-node)
 
 ## Contact
 
-Author: Tucker Hwang  
-Date: 26 June 2025  
+Author: Tucker Hwang\
+Last updated: 25 September 2026\
 Contact: [tucker_hwang@berkeley.edu](mailto:tucker_hwang@berkeley.edu) or Slack for issues, questions, or suggestions
 
 ## Shifter
@@ -34,7 +37,7 @@ If you don't need to develop new code for O2Physics, but you just want to use th
 1. If you don't have it already, [obtain a grid certificate](https://alice-doc.github.io/alice-analysis-tutorial/start/cert.html).
 2. First, identify which package and version you want to load. If you already know, skip this step. If not, check the [Grid packages](https://alimonitor.cern.ch/packages/) page on AliMonitor for a full list. The page contains a searchable list of all ALICE-related packages, so it can take a long time to fully load. Use the search bar at the top left of the page to filter through the different packages. Take the name of the package in the leftmost column. In this example, we'll use `VO_ALICE@O2Physics::daily-20250514-0328-1`. You can use this name directly, or shorten it to `<package-name>/<tag>` format, i.e. `O2Physics/daily-20250514-0328-1`
 3. After logging into Perlmutter, enter the Shifter container with `shifter --image=tch285/o2alma:latest --module=cvmfs /bin/bash --rcfile <path/to/file>`:
-    - `--module=cvmfs` mounts the CMVFS binaries (contained in `/cvmfs`) into the container; by default, they are not persisted.
+    - `--module=cvmfs` mounts the CMVFS binaries (contained in `/cvmfs`) into the container; without this option, CVMFS binaries will not be available within the container. You can also do `-m cvmfs` for short.
     - `/bin/bash`: start an interactive Bash session. You can replace this with any other command if you want to run that command within the container.
     - `--rcfile <path/to/file>`: the Bash session will not source any of your login scripts. Replace `<path/to/file>` with the local path to any setup scripts, or remove this option completely if not necessary.
 4. You can now enter the environment by running `/cvmfs/alice.cern.ch/bin/alienv enter VO_ALICE@O2Physics::daily-20250514-0328-1`.
@@ -44,16 +47,16 @@ If you don't need to develop new code for O2Physics, but you just want to use th
 1. If you aren’t aiming to develop for O2Physics and only intending to run the software, explore whether you can use the precompiled binaries on CVMFS, and check the [previous section](#using-pre-built-o2o2physics) if you do.
 2. First [obtain a grid certificate](https://alice-doc.github.io/alice-analysis-tutorial/start/cert.html) if you haven't done so already.
 3. `ssh` into Perlmutter with your credentials and make sure you have [converted your certificate](https://alice-doc.github.io/alice-analysis-tutorial/start/cert.html#convert-your-certificate-for-using-the-grid-tools).
-4. Make and enter your work directory. For the rest of this installation, we’ll assume it’s in `~/alice`. Do not try to install in Global Common (`/global/common/software/alice`) - O2 is too large. I recommend installing in a personal directory on CFS (e.g. `/global/cfs/cdirs/alice/$USER/myO2Physics`)
-5. To run this installation, we’ll be using `tmux` or `screen`. Since Perlmutter has a load balancer that’ll put you (probably) on a random node whenever you log in, it’s important to know where your tmux/screen sessions are running (they don’t persist across login nodes). Find your login node with `echo $HOST` or `hostname`. The output will be the name of the login node you’re in, something like `loginXX` with XX being a two-digit number between 01 and 40.
+4. Make and enter your work directory. For the rest of this installation, we’ll assume it’s in `~/alice`. Do not try to install in Global Common (`/global/common/software/alice`) - O2 is too large. I recommend installing in a personal directory in the ALICE directory on CFS (e.g. `/global/cfs/cdirs/alice/$USER/myO2Physics`)
+5. To run this installation, we’ll be using [`tmux`](https://www.redhat.com/en/blog/introduction-tmux-linux) or [`screen`](https://www.redhat.com/en/blog/tips-using-screen). Since Perlmutter has a load balancer that’ll put you (probably) on a random node whenever you log in, it’s important to know where your tmux/screen sessions are running (they don’t persist across login nodes). Find your login node with `echo $HOST` or `hostname`. The output will be the name of the login node you’re in, something like `loginXX` with XX being a two-digit number between 01 and 40.
 6. Start a multiplexer window, either with `tmux` or `screen`. I personally recommend `tmux`, since it preserves the full history of the shell (there’s probably some option in `screen` that allows this too but I forget).
 7. Enter the Shifter container via
 
     ```bash
-    shifter -m none --image=tch285/o2alma:latest /bin/bash
+    shifter -m cvmfs --image=tch285/o2alma:latest /bin/bash
     ```
 
-    You can add the additional option to load an rc file in your bash session by tacking on `--rcfile <path/to/file>` at the end of the above command.
+    You can add the additional option to load an rc file in your bash session by tacking on `--rcfile <path/to/file>` at the end of the above command. Also note that you must specify a module with `-m <something>`; if the `-m/--module` option is not specified at all, Shifter will load some default libraries that interfere with aliBuild (specifically, it interferes with git cloning over HTTPS). If building via `aliBuild build`, `-m none` will also work (since it forces Shifter to load no libraries at all), but CVMFS can be useful when running O2 tasks (see [this section](#stabilizing-matlut-geometry-and-ccdb-lookups)), so we use `-m cvmfs`.
 8. Set up `alienv` with
 
     ```bash
@@ -63,14 +66,14 @@ If you don't need to develop new code for O2Physics, but you just want to use th
 
     Replace `<path/to/work/dir>` with whatever you used in step 1. In that example, we would set `ALIBUILD_WORK_DIR` with: `export ALIBUILD_WORK_DIR="~/alice/sw"`
 9. Get O2 with: `aliBuild init O2@dev`
-    - We do this because aliBuild will build the dependencies of anything you tell it to build. This means that every time the O2 dependency of O2Physics updates, aliBuild will fully rebuild the new version of O2 from scratch. If we pull O2 into our local build, O2Physics will instead built off of that local version. As long as you keep your local O2 up to date, aliBuild can then intelligently build only what it needs to, instead of a full rebuild.
+    - We do this because aliBuild will build the dependencies of anything you tell it to build. O2 is a dependency of O2Physics, so every time that the O2 dependency of O2Physics updates, aliBuild will fully rebuild the new version of O2 from scratch. If we pull O2 into our local build, O2Physics will instead built off of that local version. As long as you keep your local O2 up to date, aliBuild can then intelligently build only what it needs to, instead of a full rebuild.
 10. Clone the O2Physics repository. Here are some common options to do this:
-    - `aliBuild init O2Physics@master`, which will clone the repo from the main source. If you’re developing for O2Physics, there is essentially no reason for you to do this, since you need a fork to submit PRs. Instead, you should clone your own fork instead:
-    - `git clone <your_fork>`: Make a fork of the main O2Physics repository and clone that instead. You can specify a specific branch with `b <your_branch>` and only clone that branch with `--single-branch`. In this case, make sure to swap into the branch you want before you build!
+    - `aliBuild init O2Physics@master`, which will clone the repo from the main [ALICE O2Physics repository](https://github.com/AliceO2Group/O2Physics). If you’re developing for O2Physics, there is basically no reason for you to do this, since you need a fork to submit PRs. Instead, you should clone your own fork:
+    - `git clone <your_fork>`: [Make a fork](https://docs.github.com/en/pull-requests/how-tos/work-with-forks/fork-a-repo) of the main O2Physics repository and clone that instead. Make a branch with a descriptive name, not something like `main` or `dev`. You can specify a specific branch with `b <your_branch>` and only clone that branch with `--single-branch`. In this case, make sure to swap into the branch you want before you build!
 11. Your work directory should now contain directories `O2`, `O2Physics`, `alidist`, and `sw`. Build with `time aliBuild build O2Physics -d -j5`. Here are the explanations for the arguments:
     - `time` is totally optional: I just like to know how long the compilation takes. In my experience it takes around 4-6 hours with these arguments.
     - The `-d` flag results in debug/verbose output, so you can ignore this if you want.
-    - `-j5` instructs the node to use 5 cores. aliBuild by default uses the maximum number of available cores, which on Perlmutter login nodes is 256. However, it’s actually better for us to use fewer cores, because the build step can run into problems if there’s not enough available memory per core (which it almost certainly will) - so we reduce the number of cores and thereby increase the available memory per core. If you give it too many cores, you will see an error like
+    - `-j5` instructs the node to use 5 cores. aliBuild by default uses the maximum number of available cores, which on Perlmutter login nodes is 256. However, it’s actually better for us to use fewer cores, because the build step can run into problems if there’s not enough available memory per core (which it always does) - so we reduce the number of cores and thereby increase the available memory per core. If you give it too many cores, you will see an error like
 
         ```bash
         c++: fatal error: Killed signal terminated program cc1plus
@@ -83,20 +86,20 @@ If you don't need to develop new code for O2Physics, but you just want to use th
         until aliBuild build O2Physics -d -j5; do sleep 1; done
         ```
 
-        This will continually rerun the build until it succeeds. Be careful of doing this when you've changed the code and trying to recompile! If you've made a compilation error, this will run endlessly (since it's a persistent issue with your code rather than a memory problem and it will never properly compile). If it seems like it's going too long, exit out with Ctrl-C and see what the singular build command gives.
+        This will continually rerun the build until it succeeds. Be careful of doing this when you've changed the code and trying to recompile! If you've made a compilation error, this will run endlessly (since it's a persistent issue with your code rather than a memory problem) and it will never properly compile. If it seems like it's going too long, exit out of the build command with Ctrl-C and see what the singular build command gives.
 12. You can now detach at any point (with `<Ctrl-a> d` on screen or `<Ctrl-b> d` on tmux), and close the ssh connection as you need. If you want to check the progress, log back into Perlmutter, ssh into the login node you found in step 3[^2] (with e.g. `ssh login25`) and reattach to your multiplexer window with `tmux a` or `screen -r`.
 13. When the compilation finishes, you’ll get a message like this:
 
     ```text
     ==> Build of O2Physics successfully completed on `login<XX>'.
         Your software installation is at:
-    
+
           <path/to/work>/sw/slc9_x86-64
-    
+
         You can use this package by loading the environment:
-    
+
           alienv enter O2Physics/latest-<branch-name>-o2
-    
+
     ==> Build directory for devel package O2Physics:
         <path/to/work>/sw/BUILD/O2Physics-latest/O2Physics
     2024-10-31@13:52:13:DEBUG:O2Physics:O2Physics:0: Everything done
@@ -116,7 +119,11 @@ If you don't need to develop new code for O2Physics, but you just want to use th
 
 ### Setting up `pre-commit`
 
-O2Physics and O2 are configured so that you can use the `pre-commit` tool to help format your code so it passes the CI checks during pull requests. `pre-commit` is already installed in the `o2alma:latest` image, so no need to run `pip install pre-commit`: you can simply follow the instructions [here](https://aliceo2group.github.io/analysis-framework/docs/tools/#pre-commit-hooks) on how to configure pre-commit hooks for O2Physics.
+O2Physics and O2 are configured so that you can use the [`pre-commit`](https://pre-commit.com/) tool to help format your code so it passes the CI checks during pull requests. `pre-commit` is already installed in the `o2alma:latest` image, so no need to run `pip install pre-commit`: you can simply follow [these instructions](https://aliceo2group.github.io/analysis-framework/docs/tools/#pre-commit-hooks) on how to configure pre-commit hooks for O2Physics.
+
+### Using `ninja` for partial builds
+
+You can choose to build only specific directories or even specific executables with `ninja`. This requires `ninja` and `direnv`, both of which are installed in the `o2alma/latest` image. Instructions can be found on slide 22 of [these slides from O2AT5](https://indico.cern.ch/event/1574136/timetable/#31-getting-started-with-o2o2ph) or in the [O2Physics documentation](https://aliceo2group.github.io/analysis-framework/docs/gettingstarted/installing.html#building-partially-for-development-using-ninja). Note that direnv won't be [hooked into your shell](https://direnv.net/docs/hook.html) automatically, so you will have to do it yourself every time you enter the Shifter image, or put the hook command into your `--rcfile <file>`.
 
 ### Using aliases in `alienv` environments
 
@@ -130,6 +137,53 @@ By default, to avoid conflicts, the shell produced by `alienv enter` loads no sh
     ```
 
     `alienv setenv` is useful to run a single command inside the environment. In this case, we make it open an interactive bash session (`-i`) with a specific startup script. You can even make it load your login scripts with `/bin/bash -l`.
+
+### Stabilizing MatLUT, geometry, and CCDB lookups
+
+O2 queries for the material lookup tables (called `MatLUT`) from CVMFS first, so if you observe delays in `MatLUT` queries, you can load the Shifter image with CVMFS with
+
+```bash
+shifter -m cvmfs --image=tch285/o2alma:latest /bin/bash
+```
+
+Geometry and various other external parameters are loaded via external sites, prioritizing the closest. We have replicas at the LBNL EOS storage site (named `LBL_HPCS`), but if LBNL is down, you will see warning messages like
+
+```text
+[942045:eventselection-run3]: Error in <TNetXNGFile::Open>: [ERROR] Server responded with an error: [3014] Unable to open file  /eos/alicelblhpcs/grid/00/38792/fea1665b-a441-11ef-a449-b47af1a61b9a; Network is unreachable
+```
+
+and the files will be queried from the next closest sites, Oak Ridge (named `ORNL`) and KISTI in Korea (named `KISTI_GSDC`), which are usually stable. To force the usage of a specific site, you can set the relevant environment variable to the name of the site, as below. Be aware that all queries will be redirected to the designated site.
+
+```bash
+export ALIEN_SITE=ORNL # or LBL_HPCS or KISTI_GSDC or CERN
+```
+
+For a file, you can find where replicas are hosted via `alien_whereis`. For example, for the file above, we take the last part of the file path (in this case, `fea1665b-a441-11ef-a449-b47af1a61b9a`) and run the following command:
+
+```bash
+shifter --module=cvmfs --image=tch285/o2alma:latest /cvmfs/alice.cern.ch/bin/alienv setenv xjalienfs/1.7.0-20 -c alien_whereis fea1665b-a441-11ef-a449-b47af1a61b9a
+```
+
+`alien_whereis` will then list the relevant sites:
+
+```text
+the GUID fea1665b-a441-11ef-a449-b47af1a61b9a is in
+
+         SE => ALICE::CERN::OCDB        pfn => root://eosalice.cern.ch:1094//eos/alice/cond/00/38792/fea1665b-a441-11ef-a449-b47af1a61b9a
+         SE => ALICE::LBL_HPCS::EOS     pfn => root://alicemgm0.lbl.gov:1094//00/38792/fea1665b-a441-11ef-a449-b47af1a61b9a
+         SE => ALICE::UPB::CCDB         pfn => root://eos-mgm-1.grid.pub.ro:1094//eos/aliceupb/cond/00/38792/fea1665b-a441-11ef-a449-b47af1a61b9a
+         <etc.>
+```
+
+### Checking a corrupted file
+
+Occasionally raw AO2D files (i.e. not derived data) can be corrupted. Analyzing corrupted AO2Ds can sometimes leave errors like
+
+```text
+Exception while running: Unmatching number of rows for branch fVt. Expected 1455648, found 0. Rethrowing.
+```
+
+You can check if an AO2D is corrupted by analyzing it with [this ROOT macro](https://github.com/AliceO2Group/O2DPG/blob/master/UTILS/checkCorruptedAO2Ds.C).
 
 ### Generating and using AliEn tokens
 
